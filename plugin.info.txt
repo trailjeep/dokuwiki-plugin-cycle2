@@ -1,0 +1,8 @@
+# General Plugin Info do not edit
+base   cycle2
+author Reinhard Kaeferboeck
+email  rfk@kaeferboeck.info
+date   2020-05-19
+name   Cycle2 Plugin
+desc   a versatile slideshow plugin for jQuery
+url    http://www.dokuwiki.org/plugin:cycle2
