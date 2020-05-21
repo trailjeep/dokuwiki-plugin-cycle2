@@ -8,20 +8,14 @@
  
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
- 
 if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
- 
+require_once(DOKU_INC.'inc/JpegMeta.php');
+
 /**
  * All DokuWiki plugins to extend the parser/rendering mechanism
  * need to inherit from this class
  */
 class syntax_plugin_cycle2 extends DokuWiki_Syntax_Plugin {
-    var $dataspeed   = '500';
-    var $datafx      = 'fade';
-    var $datatimeout = '4000';
-	var $ns          = '';
-	var $w           = '600';
-    var $h           = '400';
 
     function getType(){ return 'formatting';}
     function getPType(){ return 'normal';}
@@ -34,17 +28,16 @@ class syntax_plugin_cycle2 extends DokuWiki_Syntax_Plugin {
      * Handle the match
      */
     function handle($match, $state, $pos, Doku_Handler $handler) {
-		global $INFO;
         switch($state) {
             case DOKU_LEXER_ENTER:
-                $attributes  = strtolower(substr($match, 5, -1));
-                $dataspeed   = $this->_getAttribute($attributes, "data-speed", "500");
-                $datafx      = $this->_getAttribute($attributes, "data-fx", "fade");
-                $datatimeout = $this->_getAttribute($attributes, "data-timeout", "4000");
-				$ns          = $this->_getAttribute($attributes, "ns", str_replace(':', '/', $INFO['namespace']));
-				$w           = $this->_getAttribute($attributes, "w", "600");
-				$h           = $this->_getAttribute($attributes, "h", "400");
-                return array($state, array($dataspeed, $datafx, $datatimeout, $ns, $w, $h));
+				//$attributes  = strtolower(substr($match, 5, -1));
+				$attributes  = substr($match, 5, -1);
+                $speed     = $this->_getAttribute($attributes, "speed", "500");
+                $fx        = $this->_getAttribute($attributes, "fx", "fade");
+                $timeout   = $this->_getAttribute($attributes, "timeout", "4000");
+				$namespace = $this->_getAttribute($attributes, "namespace", str_replace(':', '/', $INFO['namespace']));
+				$width     = $this->_getAttribute($attributes, "width", "400px");
+                return array($state, array($speed, $fx, $timeout, $namespace, $width));
             case DOKU_LEXER_UNMATCHED:
                 return array($state, $match);
             case DOKU_LEXER_EXIT:
@@ -61,36 +54,29 @@ class syntax_plugin_cycle2 extends DokuWiki_Syntax_Plugin {
             list($state,$match) = $data;
             switch ($state) {
               case DOKU_LEXER_ENTER :
-                list($this->dataspeed,$this->datafx,$this->datatimeout,$this->ns,$this->w,$this->h) = $match;
-                $renderer->doc .= '<div class="cycle-slideshow" ';
-				$renderer->doc .= 'data-cycle-speed="'.$this->dataspeed.'" ';
-				$renderer->doc .= 'data-cycle-fx="'.$this->datafx.'" ';
+                list($this->speed,$this->fx,$this->timeout,$this->namespace,$this->width) = $match;
+                $renderer->doc .= '<div class="cycle-slideshow" style="width: '.$this->width.';" ';
+				$renderer->doc .= 'data-cycle-speed="'.$this->speed.'" ';
+				$renderer->doc .= 'data-cycle-fx="'.$this->fx.'" ';
 				$renderer->doc .= 'data-cycle-pause-on-hover="true" ';
 				$renderer->doc .= 'data-cycle-auto-height="container" ';
 				$renderer->doc .= 'data-cycle-center-horz="true" ';
 				$renderer->doc .= 'data-cycle-center-vert="false" ';
 				$renderer->doc .= 'data-cycle-loader="wait" ';
-				$renderer->doc .= 'data-cycle-swipe=true" ';
+				$renderer->doc .= 'data-cycle-swipe="true" ';
+				$renderer->doc .= 'data-cycle-random="true" ';
 				$renderer->doc .= 'data-cycle-slides="> a" ';
-				$renderer->doc .= 'data-timeout="'.$this->datatimeout.'">';
+				$renderer->doc .= 'data-timeout="'.$this->timeout.'">';
 				$renderer->doc .= '<div class="cycle-prev"></div>';
 				$renderer->doc .= '<div class="cycle-next"></div>';
+				$renderer->doc .= '<div class="cycle-overlay center"></div>';
                 break;
               case DOKU_LEXER_UNMATCHED :  
                 $renderer->doc .= $renderer->_xmlEntities($match);
                 break;
 			  case DOKU_LEXER_EXIT :
-				global $INFO;
-				$ns = $this->ns;
-                if ($ns == "") { $ns = $INFO['namespace']; }
-				$ns = str_replace(':', '/', $ns);
-                $dir = DOKU_INC.'data/media/'.$ns;
-                $files = glob($dir."/*.{jpg,png,gif}", GLOB_BRACE);
-                foreach($files as $file) {
-				  $file = pathinfo($file, PATHINFO_BASENAME);
-				  $renderer->doc .= '<a class="media" href="/_detail/'.$ns.'/'.$file.'" target="_blank" title="'.$ns.'/'.$file.'" rel ="noopener"><img class="media" src="/_media/'.$ns.'/'.$file.'" /></a>';
-				  //$renderer->doc .= '<img class="media" src ="/_media/'.$ns.'/'.$file.'" />';
-				}
+				$images = $this->_getNsImages($this->namespace);
+				$renderer->doc .= $images;
                 $renderer->doc .= "</div>"; 
                 break;
             }
@@ -122,5 +108,28 @@ class syntax_plugin_cycle2 extends DokuWiki_Syntax_Plugin {
         }
         return $retVal;
     }
+    function _getNsImages($ns) {
+		global $conf;
+        $files = array();
+		$images = '';
+		if ($ns == ".") {
+			$ns = getNS(cleanID(getID()));
+		} elseif ($ns == "") {
+			return false;
+		}
+		$ns     = str_replace(':', '/', $ns);
+		$files  = glob($conf['mediadir'].'/'.$ns."/*.{jp*g,png,gif}", GLOB_BRACE);
+		require_once(DOKU_INC.'inc/JpegMeta.php');
+       	foreach($files as $file) {
+			$base = pathinfo($file, PATHINFO_BASENAME);
+			$meta = new JpegMeta($file);
+			$title = $meta->getField('Simple.Title');
+			$desc = $meta->getField('Iptc.Caption');
+			$images .= '<a class="media" href="/_detail/'.$ns.'/'.$base.'" target="_blank" title="'.$ns.'/'.$base.'" rel ="noopener" data-cycle-title="'.$title.'" data-cycle-desc="'.$desc.'">';
+			$images .= '<img class="media" width="'.$this->width.'" src=" /_media/'.$ns.'/'.$base.'" data-cycle-title="'.$title.'" data-cycle-desc="'.$desc.'" />';
+			$images .= '</a>';
+       	}
+		return $images;
+	}
 }
 //Setup VIM: ex: et ts=4 enc=utf-8 :

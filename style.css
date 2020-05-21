@@ -1,6 +1,11 @@
-.cycle-slideshow     { width: 500px; max-width: 100%; margin: 1em auto; }
-.cycle-slideshow img { border: 10px solid @ini_border; border-radius: 1em; }
+.cycle-slideshow     { max-width: 100%; margin: 0 auto; }
+.cycle-slideshow img { border: 1px dotted @ini_border; /*border-radius: 1em;*/ }
 .cycle-prev { left: 0; background: rgba(0, 0, 0, 0) url("http://malsup.github.com/images/left.png") 50% 50% no-repeat; }
 .cycle-prev:hover, .cycle-next:hover { opacity: .7; filter: alpha(opacity=70); }
 .cycle-next { right: 0; background: rgba(0, 0, 0, 0) url("http://malsup.github.com/images/right.png") 50% 50% no-repeat; }
 .cycle-prev, .cycle-next { position: absolute; top: 0; width: 30%; opacity: 0; filter: alpha(opacity=0); z-index: 800; height: 100%; cursor: pointer; }
+/* overlay */
+
+.cycle-overlay { clear: both; font-size: small; width: 100%; position: absolute; bottom: 0; margin: 0 auto; z-index: 600; background: black; color: white; padding: 15px; opacity: 0.75; } 
+.cycle-overlay div:first-child { float: left; }
+.cycle-overlay div:last-child { float: right; }
